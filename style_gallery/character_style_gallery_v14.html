@@ -1,0 +1,63 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>キャラクター画風図鑑 mini v14</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#faf7fc;color:#32283d;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif}
+header{padding:14px 16px;background:#fff}h1{font-size:21px;margin:0 0 5px}p{line-height:1.6}header p,.hint{font-size:12px;color:#726779;margin:0}
+.viewer{width:100%;aspect-ratio:1/1;background:#f3eff6;display:flex;align-items:center;justify-content:center}
+.viewer canvas{display:block;width:100%;height:100%;max-width:720px;max-height:720px}
+.panel{background:white;padding:14px 16px}.panel h2{font-size:19px;margin:0 0 5px}.code{font-size:13px;color:#6a4a9e}.desc{font-size:13px;margin:7px 0}
+.controls{padding:15px 12px;background:white;border-top:1px solid #eee}.controls h3,.prompt h3{font-size:16px;margin:0 0 9px}
+.controls select{width:100%;padding:13px;font-size:16px;border:2px solid #8465ae;border-radius:10px;background:white}
+.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}
+.choices button{border:1px solid #d8cbe7;background:#fff;border-radius:9px;min-height:45px;font-size:12px;padding:6px 2px;color:#443350;touch-action:manipulation}
+.choices button.active{background:#ede4fa;border:2px solid #7751a8;font-weight:bold}
+.prompt{padding:18px 14px}.prompt textarea{display:block;width:100%;height:160px;min-height:130px;border:1px solid #d8cbe7;border-radius:10px;padding:12px;font-size:14px;line-height:1.65;background:#fff}
+button.copy{width:100%;border:0;border-radius:10px;background:#7353a8;color:white;font-size:15px;font-weight:700;padding:14px;margin-top:9px}
+button.copy.alt{background:#ece5f5;color:#594378}.status{font-size:12px;color:#695c77}footer{padding:15px;font-size:12px;color:#71667a}
+@media(min-width:700px){.viewer{max-height:720px}.choices{grid-template-columns:repeat(5,minmax(0,1fr))}}
+</style></head><body>
+<header><h1>🐰 キャラクター画風図鑑 mini</h1><p>v14｜水彩・粘土の完成画像を反映／表示サイズ自動統一</p></header>
+<div class="viewer"><canvas id="heroCanvas" width="800" height="800" role="img" aria-label="選択中の画風見本"></canvas></div>
+<div class="panel"><h2 id="name"></h2><span class="code" id="code"></span><p class="desc" id="desc"></p></div>
+<section class="controls"><h3>画像確認用・画風を選択</h3><select id="select" aria-label="画風を選択"></select><div class="choices" id="choices"></div></section>
+<section class="prompt"><h3>画像を作るためのプロンプト説明文</h3><p class="hint">元キャラ画像を添付して、下の文章をコピーしてください。編集もできます。</p>
+<textarea id="prompt" spellcheck="false"></textarea><button class="copy" id="copy">詳しいプロンプトをコピー</button><button class="copy alt" id="copycode">コマンドだけコピー</button><p class="status" id="status" aria-live="polite"></p></section>
+<footer>画風コマンドは分類ラベルです。単独で画像生成機能が動くものではありません。</footer>
+<script>
+const styles=[{"name": "ちびキャラ", "code": "/chibi", "image": "01_chibi.png", "desc": "頭を大きく、手足を小さくしたデフォルメ"}, {"name": "ゆるかわ", "code": "/yurukawa", "image": "02_yurukawa.png", "desc": "ゆるい線と柔らかい表情"}, {"name": "ぬいぐるみ", "code": "/plush", "image": "03_plush.png", "desc": "布の繊維と縫い目が見えるぬいぐるみ"}, {"name": "色鉛筆", "code": "/pencil", "image": "04_pencil.png", "desc": "紙の上の色鉛筆の線と重ね塗り"}, {"name": "水彩", "code": "/watercolor", "image": "05_watercolor_final.png", "desc": "透明水彩のにじみと淡い重なり"}, {"name": "粘土", "code": "/clay", "image": "06_clay_final.png", "desc": "指で成形した丸みとマットな粘土の質感"}, {"name": "アニメ", "code": "/anime", "image": "07_anime.png", "desc": "明快な輪郭とセル塗り"}, {"name": "コミック", "code": "/comic", "image": "08_comic.png", "desc": "漫画のインク線とメリハリ"}, {"name": "シンプル", "code": "/simple", "image": "09_simple.png", "desc": "少ない色と整理された形"}, {"name": "ドット絵", "code": "/pixel", "image": "10_pixel.png", "desc": "輪郭をピクセル単位で表現"}, {"name": "3Dフィギュア", "code": "/3d", "image": "11_3d.png", "desc": "立体造形と自然なライティング"}, {"name": "フェルト", "code": "/felt", "image": "12_felt.png", "desc": "羊毛フェルトの細かな繊維"}, {"name": "ペーパークラフト", "code": "/paper", "image": "13_paper.png", "desc": "紙の切り口と重なり"}, {"name": "刺繍", "code": "/embroidery", "image": "14_embroidery.png", "desc": "糸のステッチと布の質感"}, {"name": "編みぐるみ", "code": "/knit", "image": "15_knit.png", "desc": "毛糸の編み目と立体感"}, {"name": "ガラス", "code": "/glass", "image": "16_glass.png", "desc": "透明ガラスの反射と屈折"}, {"name": "レジン", "code": "/resin", "image": "17_resin.png", "desc": "樹脂のぷっくりした光沢"}, {"name": "ステンドグラス", "code": "/stainedglass", "image": "18_stainedglass.png", "desc": "色ガラスと境界線"}, {"name": "木彫り", "code": "/wood", "image": "19_wood.png", "desc": "木目と彫り跡"}];
+const base="添付した私の元キャラクター画像を参照し、同じキャラクターと認識できるよう、顔の輪郭、緑の瞳とハートのハイライト、垂れ耳の形と位置、口、ピンクの頬、体型、手足、肉球、配色、表情を保ってください。顔・耳・身体の白い部分は真っ白に保ち、影を別の体色として解釈しないでください。手足の本数や位置を自然にし、耳や足先を切らず全身を画像内に収め、上下左右に十分な余白を確保してください。背景は完全透過PNG。白背景やチェック柄、文字、ロゴ、余計な小物は追加しないでください。";
+const $=id=>document.getElementById(id);
+let current=0, imageRequest=0;
+styles.forEach((s,i)=>{
+ const o=document.createElement('option');o.value=i;o.textContent=String(i+1).padStart(2,'0')+' '+s.name+' '+s.code;$('select').append(o);
+ const b=document.createElement('button');b.type='button';b.textContent=s.name;b.addEventListener('click',()=>choose(i));$('choices').append(b);
+});
+function normalizeHero(url,alt){
+ const request=++imageRequest,canvas=$('heroCanvas'),ctx=canvas.getContext('2d');
+ ctx.clearRect(0,0,800,800);
+ const img=new Image();img.decoding='async';
+ img.onload=()=>{
+  if(request!==imageRequest)return;
+  const probe=document.createElement('canvas');probe.width=256;probe.height=256;
+  const pc=probe.getContext('2d',{willReadFrequently:true});
+  const fit=Math.min(256/img.naturalWidth,256/img.naturalHeight),iw=img.naturalWidth*fit,ih=img.naturalHeight*fit,ox=(256-iw)/2,oy=(256-ih)/2;
+  pc.drawImage(img,ox,oy,iw,ih);
+  const rgba=pc.getImageData(0,0,256,256).data;let l=256,t=256,r=-1,b=-1;
+  for(let y=0;y<256;y++)for(let x=0;x<256;x++){const j=(y*256+x)*4;if(rgba[j+3]>32){l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y)}}
+  let sx=0,sy=0,sw=img.naturalWidth,sh=img.naturalHeight;
+  if(r>=l&&b>=t){sx=Math.max(0,(l-ox)/fit);sy=Math.max(0,(t-oy)/fit);const ex=Math.min(img.naturalWidth,(r+1-ox)/fit),ey=Math.min(img.naturalHeight,(b+1-oy)/fit);sw=Math.max(1,ex-sx);sh=Math.max(1,ey-sy)}
+  const margin=.075,target=canvas.width*(1-2*margin),scale=Math.min(target/sw,target/sh),dw=sw*scale,dh=sh*scale;
+  ctx.clearRect(0,0,800,800);ctx.drawImage(img,sx,sy,sw,sh,(800-dw)/2,(800-dh)/2,dw,dh);
+ };
+ img.onerror=()=>{if(request===imageRequest){ctx.clearRect(0,0,800,800);ctx.fillStyle='#655772';ctx.font='26px sans-serif';ctx.fillText('画像を読み込めませんでした',160,400)}};
+ img.src=url;canvas.setAttribute('aria-label',alt);
+}
+function choose(i){
+ current=i;const s=styles[i];$('select').value=i;normalizeHero(s.image,s.name+'の見本');
+ $('name').textContent=s.name;$('code').textContent=s.code;$('desc').textContent=s.desc;
+ $('prompt').value=base+'\n\n【指定画風】'+s.name+'（'+s.code+'）\n'+s.desc+'。この画風ならではの素材感・線・色を明確に表現してください。元キャラクターの形状と配色を変えないことを最優先にしてください。';
+ [...$('choices').children].forEach((b,j)=>{b.classList.toggle('active',i===j);b.setAttribute('aria-pressed',String(i===j))});$('status').textContent='';
+}
+$('select').addEventListener('change',e=>choose(Number(e.target.value)));
+async function copy(t){let ok=false;try{await navigator.clipboard.writeText(t);ok=true}catch(e){const a=document.createElement('textarea');a.value=t;document.body.append(a);a.select();try{ok=document.execCommand('copy')}catch(e){}a.remove()}$('status').textContent=ok?'コピーしました':'コピーできない場合は、文章を長押ししてコピーしてください'}
+$('copy').onclick=()=>copy($('prompt').value);$('copycode').onclick=()=>copy(styles[current].code);choose(0);
+</script></body></html>
